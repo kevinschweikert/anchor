@@ -41,6 +41,8 @@ pub type Resource {
     pricing: List(PricingRule),
     availability: List(Availability),
     allow_animals: Bool,
+    created_at: Timestamp,
+    updated_at: Option(Timestamp),
   )
 }
 
