@@ -1,6 +1,10 @@
+import gleam/dynamic/decode
+import gleam/json
 import gleam/option.{type Option}
+import gleam/time/calendar
 import gleam/time/duration.{type Duration}
 import gleam/time/timestamp.{type Timestamp}
+import youid/uuid
 
 pub type Condition {
   Always
@@ -28,12 +32,12 @@ pub type Availability {
 }
 
 pub type Contact {
-  Contact(id: String, name: String, surname: String, email: String)
+  Contact(id: uuid.Uuid, name: String, surname: String, email: String)
 }
 
 pub type Resource {
   Resource(
-    id: String,
+    id: uuid.Uuid,
     name: String,
     capacity: Int,
     gap: Duration,
@@ -46,9 +50,46 @@ pub type Resource {
   )
 }
 
+pub fn resource_to_json(resource: Resource) -> json.Json {
+  let Resource(
+    id:,
+    name:,
+    capacity:,
+    gap:,
+    currency:,
+    pricing: _,
+    availability: _,
+    allow_animals:,
+    created_at:,
+    updated_at:,
+  ) = resource
+  json.object([
+    #("id", uuid.to_string(id) |> json.string),
+    #("name", json.string(name)),
+    #("capacity", json.int(capacity)),
+    #("gap", duration.to_seconds(gap) |> json.float),
+    #("currency", json.string(currency)),
+    // #("pricing", json.array(pricing, todo as "Encoder for PricingRule")),
+    // #(
+    //   "availability",
+    //   json.array(availability, todo as "Encoder for Availability"),
+    // ),
+    #("allow_animals", json.bool(allow_animals)),
+    #(
+      "created_at",
+      timestamp.to_rfc3339(created_at, calendar.utc_offset) |> json.string,
+    ),
+    #("updated_at", case updated_at {
+      option.None -> json.null()
+      option.Some(value) ->
+        timestamp.to_rfc3339(value, calendar.utc_offset) |> json.string
+    }),
+  ])
+}
+
 pub type Request {
   Request(
-    id: String,
+    id: uuid.Uuid,
     start: Timestamp,
     end: Timestamp,
     contact: Contact,
