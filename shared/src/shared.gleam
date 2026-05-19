@@ -1,10 +1,37 @@
 import gleam/dynamic/decode
+import gleam/float
 import gleam/json
 import gleam/option.{type Option}
 import gleam/time/calendar
 import gleam/time/duration.{type Duration}
 import gleam/time/timestamp.{type Timestamp}
 import youid/uuid
+
+fn uuid_decoder() -> decode.Decoder(uuid.Uuid) {
+  use str <- decode.then(decode.string)
+  case uuid.from_string(str) {
+    Ok(uuid) -> decode.success(uuid)
+    Error(_) -> decode.failure(uuid.v4(), "UUID")
+  }
+}
+
+fn duration_decoder() -> decode.Decoder(Duration) {
+  use seconds <- decode.then(decode.float)
+  {
+    seconds *. 1000.0
+    |> float.round
+    |> duration.milliseconds()
+    |> decode.success()
+  }
+}
+
+fn timestamp_decoder() -> decode.Decoder(Timestamp) {
+  use rfc_string <- decode.then(decode.string)
+  case timestamp.parse_rfc3339(rfc_string) {
+    Ok(timestamp) -> decode.success(timestamp)
+    Error(_) -> decode.failure(timestamp.system_time(), "RFC3339 Timestamp")
+  }
+}
 
 pub type Condition {
   Always
@@ -48,6 +75,34 @@ pub type Resource {
     created_at: Timestamp,
     updated_at: Option(Timestamp),
   )
+}
+
+pub fn resource_decoder() -> decode.Decoder(Resource) {
+  use id <- decode.field("id", uuid_decoder())
+  use name <- decode.field("name", decode.string)
+  use capacity <- decode.field("capacity", decode.int)
+  use gap <- decode.field("gap", duration_decoder())
+  use currency <- decode.field("currency", decode.string)
+  // use pricing <- decode.field("pricing", decode.list(todo as "Decoder for PricingRule"))
+  // use availability <- decode.field("availability", decode.list(todo as "Decoder for Availability"))
+  use allow_animals <- decode.field("allow_animals", decode.bool)
+  use created_at <- decode.field("created_at", timestamp_decoder())
+  use updated_at <- decode.field(
+    "updated_at",
+    decode.optional(timestamp_decoder()),
+  )
+  decode.success(Resource(
+    id:,
+    name:,
+    capacity:,
+    gap:,
+    currency:,
+    pricing: [],
+    availability: [],
+    allow_animals:,
+    created_at:,
+    updated_at:,
+  ))
 }
 
 pub fn resource_to_json(resource: Resource) -> json.Json {

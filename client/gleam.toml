@@ -24,3 +24,9 @@ shared = { path = "../shared" }
 [dev_dependencies]
 gleeunit = ">= 1.0.0 and < 2.0.0"
 lustre_dev_tools = ">= 2.3.6 and < 3.0.0"
+
+[tools.lustre.html]
+title = "Anchorage"
+
+[tools.lustre.dev]
+proxy = { from = "/api", to = "http://localhost:8000/api" }

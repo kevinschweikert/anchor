@@ -1,4 +1,5 @@
-import gleam/http.{Get}
+import gleam/http.{Get, Post}
+import gleam/http/request
 import gleam/http/response.{type Response}
 import gleam/json
 import lustre/attribute
@@ -14,8 +15,40 @@ pub fn handle_request(req: wisp.Request, ctx: Context) {
   // use json <- wisp.require_json(req)
   case req.method, wisp.path_segments(req) {
     Get, [] -> serve_index(ctx)
-    Get, ["api", "resource"] -> list_resources_handler(ctx)
+    Get, ["api", ..rest] -> handle_api_request(rest, req, ctx)
     _, _ -> wisp.not_found()
+  }
+}
+
+fn handle_api_request(
+  rest: List(String),
+  req: request.Request(wisp.Connection),
+  ctx: Context,
+) -> Response(wisp.Body) {
+  case rest, req.method {
+    ["resource"], Get -> list_resources_handler(ctx)
+    ["resource", id], Get -> show_resource_handler(id, ctx)
+    ["resource"], Post -> create_resource_handler(req, ctx)
+    _, _ -> wisp.not_found()
+  }
+}
+
+fn create_resource_handler(
+  req: request.Request(wisp.Connection),
+  ctx: Context,
+) -> Response(wisp.Body) {
+  use json <- wisp.require_json(req)
+  resource.create_resource()
+}
+
+fn show_resource_handler(id: String, ctx: Context) -> Response(wisp.Body) {
+  case resource.get_resource(id, ctx.conn) {
+    Ok(resource) ->
+      wisp.json_response(
+        shared.resource_to_json(resource) |> json.to_string,
+        200,
+      )
+    Error(_) -> wisp.not_found()
   }
 }
 

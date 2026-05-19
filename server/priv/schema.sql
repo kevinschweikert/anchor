@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS resources(
-    id TEXT PRIMARY KEY,
+    id TEXT PRIMARY KEY CHECK (id = LOWER(id)),
     name TEXT NOT NULL,
     capacity INTEGER NOT NULL,
     gap_seconds INTEGER NOT NULL,

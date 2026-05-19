@@ -48,6 +48,48 @@ pub fn all_resources_decoder() -> decode.Decoder(AllResources) {
   ))
 }
 
+pub type GetResource {
+  GetResource(
+    id: String,
+    name: String,
+    capacity: Int,
+    gap_seconds: Int,
+    currency: String,
+    allow_animals: Bool,
+    created_at: Timestamp,
+    updated_at: Option(Timestamp),
+  )
+}
+
+pub fn get_resource(id id: String) {
+  let sql =
+    "SELECT id, name, capacity, gap_seconds, currency, allow_animals, created_at, updated_at
+FROM resources AS r
+WHERE r.id == ?1 COLLATE NOCASE"
+  #(sql, [dev.ParamString(id)], get_resource_decoder())
+}
+
+pub fn get_resource_decoder() -> decode.Decoder(GetResource) {
+  use id <- decode.field(0, decode.string)
+  use name <- decode.field(1, decode.string)
+  use capacity <- decode.field(2, decode.int)
+  use gap_seconds <- decode.field(3, decode.int)
+  use currency <- decode.field(4, decode.string)
+  use allow_animals <- decode.field(5, dev.bool_decoder())
+  use created_at <- decode.field(6, dev.datetime_decoder())
+  use updated_at <- decode.field(7, decode.optional(dev.datetime_decoder()))
+  decode.success(GetResource(
+    id:,
+    name:,
+    capacity:,
+    gap_seconds:,
+    currency:,
+    allow_animals:,
+    created_at:,
+    updated_at:,
+  ))
+}
+
 pub type CreateResource {
   CreateResource(
     id: String,
