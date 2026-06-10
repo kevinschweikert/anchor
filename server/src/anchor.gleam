@@ -1,8 +1,10 @@
-import db
+import anchor/db
+import anchor/router
+import anchor/web.{Context}
+import envoy
 import gleam/erlang/process
+import gleam/result
 import mist
-import router
-import web.{Context}
 import wisp
 import wisp/wisp_mist
 
@@ -10,7 +12,9 @@ pub fn main() -> Nil {
   wisp.configure_logger()
   let secret_key_base = wisp.random_string(64)
 
-  let assert Ok(conn) = db.open("anchor.db")
+  let db_path =
+    envoy.get("DATABASE_PATH") |> result.unwrap("anchor_dev.db")
+  let assert Ok(conn) = db.open(db_path)
   let ctx = Context(static_directory: static_directory(), conn:)
   let handler = router.handle_request(_, ctx)
   let assert Ok(_) =

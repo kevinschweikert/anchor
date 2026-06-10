@@ -1,22 +1,18 @@
-# Anchor
+# server
 
-A self-hosted, generic booking backend written in Gleam.
+The Anchor API server (Erlang target): wisp + mist, SQLite via sqlight.
 
-Anchor models the full lifecycle of a resource booking — from guest request to admin confirmation — with a composable pricing and cancellation engine and a clean JSON API.
+It models the booking lifecycle — guest request, confirmation, cancellation —
+with composable pricing rules, and sends automatic mails to host and guest.
 
-Built as the backend for a vacation home booking system, but designed to generalize to any bookable resource: rooms, desks, equipment, or anything that can be reserved over a time window.
+Routes:
 
-## Goals
+- `/api/*` — JSON API consumed by the widget and the admin SPA
+- `/admin/*` — serves the admin SPA shell
+- `/demo` — widget embed demo
+- `/static/*` — built JS bundles
 
-- **Self-hosted** — no third-party booking services, runs on your own infrastructure
-- **Generic** — resources, pricing rules, and availability are fully configurable via the admin API
-- **Simple lifecycle** — requests are submitted by guests, reviewed and approved by an admin, and can be cancelled by either side
-- **Composable pricing** — nightly rates, flat fees, surcharges, discounts, and cancellation refunds are all expressed as the same kind of rule
-- **Embeddable** — ships with a widget that consumes the API and can be dropped into any static site
-
-## Development
-
-```sh
-gleam run   # Run the project
-gleam test  # Run the tests
-```
+SQL queries live in `src/sql/*.sql`; `just parrot` regenerates the typed
+bindings in `src/anchor/sql.gleam`. The schema is managed with dbmate
+migrations in `priv/migrations/`. See the root README and `Justfile` for the
+full workflow.

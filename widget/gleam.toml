@@ -1,4 +1,4 @@
-name = "client"
+name = "widget"
 version = "1.0.0"
 target = "javascript"
 
@@ -27,6 +27,12 @@ lustre_dev_tools = ">= 2.3.6 and < 3.0.0"
 
 [tools.lustre.html]
 title = "Anchorage"
+body = '<anchor-widget resource="dev-resource"></anchor-widget>'
+
+[tools.lustre.build]
+outdir = "../server/priv/static"
+no_html = true
 
 [tools.lustre.dev]
+port = 1234
 proxy = { from = "/api", to = "http://localhost:8000/api" }
