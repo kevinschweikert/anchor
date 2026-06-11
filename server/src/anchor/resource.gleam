@@ -9,19 +9,14 @@ import shared
 import sqlight
 import youid/uuid
 
-pub type Error {
-  DbError(sqlight.Error)
-  ExpectedOnlyOne
-}
-
 pub fn list_resources(
   conn: sqlight.Connection,
-) -> Result(List(shared.Resource), Error) {
+) -> Result(List(shared.Resource), db.Error) {
   let #(sql, with, expecting) = sql.all_resources()
   let with = list.map(with, db.parrot_to_sqlight)
   use rows <- result.map(
     sqlight.query(sql, on: conn, with:, expecting:)
-    |> result.map_error(DbError),
+    |> result.map_error(db.DbError),
   )
   use row <- list.map(rows)
   let sql.AllResources(
@@ -49,11 +44,11 @@ pub fn list_resources(
 pub fn get_resource(
   id: String,
   conn: sqlight.Connection,
-) -> Result(shared.Resource, Error) {
+) -> Result(shared.Resource, db.Error) {
   let #(sql, with, expecting) = sql.get_resource(id)
   let with = list.map(with, db.parrot_to_sqlight)
   use row <- result.map(
-    expect_one(sqlight.query(sql, on: conn, with:, expecting:)),
+    db.expect_one(sqlight.query(sql, on: conn, with:, expecting:)),
   )
   let sql.GetResource(
     id:,
@@ -85,7 +80,7 @@ pub fn create_resource(
   currency currency: String,
   allow_animals allow_animals: Bool,
   conn conn: sqlight.Connection,
-) -> Result(shared.Resource, Error) {
+) -> Result(shared.Resource, db.Error) {
   let #(sql, with, expecting) =
     sql.create_resource(
       id:,
@@ -98,7 +93,7 @@ pub fn create_resource(
     )
   let with = list.map(with, db.parrot_to_sqlight)
   use row <- result.map(
-    expect_one(sqlight.query(sql, on: conn, with:, expecting:)),
+    db.expect_one(sqlight.query(sql, on: conn, with:, expecting:)),
   )
   let sql.CreateResource(
     id:,
@@ -120,14 +115,6 @@ pub fn create_resource(
     created_at:,
     updated_at:,
   )
-}
-
-fn expect_one(rows: Result(List(a), sqlight.Error)) -> Result(a, Error) {
-  case rows {
-    Ok([row]) -> Ok(row)
-    Ok(_) -> Error(ExpectedOnlyOne)
-    Error(err) -> Error(DbError(err))
-  }
 }
 
 fn row_to_resource(

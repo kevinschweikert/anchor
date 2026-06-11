@@ -6,6 +6,25 @@ import gleam/option.{type Option}
 import gleam/time/timestamp.{type Timestamp}
 import parrot/dev
 
+pub type GetUserByEmail {
+  GetUserByEmail(id: String, email: String, password_hash: String)
+}
+
+pub fn get_user_by_email(email email: String) {
+  let sql =
+    "SELECT id, email, password_hash
+FROM users
+WHERE users.email = ?1"
+  #(sql, [dev.ParamString(email)], get_user_by_email_decoder())
+}
+
+pub fn get_user_by_email_decoder() -> decode.Decoder(GetUserByEmail) {
+  use id <- decode.field(0, decode.string)
+  use email <- decode.field(1, decode.string)
+  use password_hash <- decode.field(2, decode.string)
+  decode.success(GetUserByEmail(id:, email:, password_hash:))
+}
+
 pub type AllResources {
   AllResources(
     id: String,
@@ -152,4 +171,80 @@ pub fn create_resource_decoder() -> decode.Decoder(CreateResource) {
     created_at:,
     updated_at:,
   ))
+}
+
+pub type InsertSession {
+  InsertSession(id: String)
+}
+
+pub fn insert_session(
+  session_id session_id: String,
+  user_id user_id: String,
+  expires_at expires_at: Timestamp,
+) {
+  let sql =
+    "INSERT INTO
+sessions(id, user_id, expires_at)
+values
+(?1, ?2, ?3)
+RETURNING id"
+  #(
+    sql,
+    [
+      dev.ParamString(session_id),
+      dev.ParamString(user_id),
+      dev.ParamTimestamp(expires_at),
+    ],
+    insert_session_decoder(),
+  )
+}
+
+pub fn insert_session_decoder() -> decode.Decoder(InsertSession) {
+  use id <- decode.field(0, decode.string)
+  decode.success(InsertSession(id:))
+}
+
+pub type LookupActiveSession {
+  LookupActiveSession(id: String, email: String, password_hash: String)
+}
+
+pub fn lookup_active_session(
+  session_id session_id: String,
+  now now: Timestamp,
+) {
+  let sql =
+    "SELECT users.id, users.email, users.password_hash
+FROM sessions
+JOIN users ON users.id = sessions.user_id
+WHERE sessions.id = ?1 AND sessions.expires_at > ?2"
+  #(
+    sql,
+    [dev.ParamString(session_id), dev.ParamTimestamp(now)],
+    lookup_active_session_decoder(),
+  )
+}
+
+pub fn lookup_active_session_decoder() -> decode.Decoder(LookupActiveSession) {
+  use id <- decode.field(0, decode.string)
+  use email <- decode.field(1, decode.string)
+  use password_hash <- decode.field(2, decode.string)
+  decode.success(LookupActiveSession(id:, email:, password_hash:))
+}
+
+pub fn delete_session(session_id session_id: String) {
+  let sql =
+    "DELETE FROM
+sessions
+WHERE
+sessions.id = ?1"
+  #(sql, [dev.ParamString(session_id)])
+}
+
+pub fn delete_expired_sessions(now now: Timestamp) {
+  let sql =
+    "DELETE FROM
+sessions
+WHERE
+sessions.expires_at <= ?1"
+  #(sql, [dev.ParamTimestamp(now)])
 }

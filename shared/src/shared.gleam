@@ -160,3 +160,7 @@ pub type Booking {
   Confirmed(request: Request, confirmed_at: Timestamp)
   Cancelled(request: Request, reason: Option(String), cancelled_at: Timestamp)
 }
+
+pub type User {
+  User(id: uuid.Uuid, email: String, password_hash: String)
+}

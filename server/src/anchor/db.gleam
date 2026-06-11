@@ -3,6 +3,11 @@ import gleam/time/timestamp
 import parrot/dev
 import sqlight
 
+pub type Error {
+  DbError(sqlight.Error)
+  ExpectedOnlyOne
+}
+
 pub fn open(path: String) -> Result(sqlight.Connection, sqlight.Error) {
   use conn <- result.try(sqlight.open(path))
   use _ <- result.try(sqlight.exec("PRAGMA journal_mode=WAL;", conn))
@@ -28,5 +33,13 @@ pub fn parrot_to_sqlight(param: dev.Param) -> sqlight.Value {
       sqlight.int(microseconds)
     }
     dev.ParamDynamic(_) -> panic as "sqlite does not support dynamic params"
+  }
+}
+
+pub fn expect_one(rows: Result(List(a), sqlight.Error)) -> Result(a, Error) {
+  case rows {
+    Ok([row]) -> Ok(row)
+    Ok(_) -> Error(ExpectedOnlyOne)
+    Error(err) -> Error(DbError(err))
   }
 }

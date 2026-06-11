@@ -1,8 +1,15 @@
+import anchor/sessions
+import gleam/option
+import shared.{type User}
 import sqlight
 import wisp
 
 pub type Context {
-  Context(conn: sqlight.Connection, static_directory: String)
+  Context(
+    conn: sqlight.Connection,
+    static_directory: String,
+    user: option.Option(User),
+  )
 }
 
 pub fn middleware(
@@ -18,4 +25,15 @@ pub fn middleware(
   use <- wisp.serve_static(req, under: "/static", from: ctx.static_directory)
 
   handle_request(req)
+}
+
+pub fn require_admin(req: wisp.Request, ctx: Context, handler) {
+  case wisp.get_cookie(req, "sid", wisp.Signed) {
+    Ok(sid) ->
+      case sessions.lookup_active(ctx.conn, sid) {
+        Ok(user) -> handler(Context(..ctx, user: option.Some(user)))
+        _ -> wisp.redirect("/login")
+      }
+    _ -> wisp.redirect("/login")
+  }
 }
