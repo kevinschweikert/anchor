@@ -11,9 +11,7 @@ import gleam/http/response.{type Response}
 import gleam/json
 import gleam/list
 import gleam/result
-import lustre/attribute
 import lustre/element
-import lustre/element/html
 import shared
 import wisp
 
@@ -123,7 +121,8 @@ fn serve_index(_ctx: Context) -> Response(wisp.Body) {
   |> wisp.html_response(200)
 }
 
-fn serve_login(_req: wisp.Request, _ctx: Context) -> Response(wisp.Body) {
+fn serve_login(req: wisp.Request, ctx: Context) -> Response(wisp.Body) {
+  use <- web.redirect_if_authenticated("/admin", req, ctx)
   login.view()
   |> element.to_document_string
   |> wisp.html_response(200)

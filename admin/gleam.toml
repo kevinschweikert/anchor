@@ -27,5 +27,6 @@ port = 1235
 proxy = [
   { from = "/api", to = "http://localhost:8000/api" },
   { from = "/login", to = "http://localhost:8000/login"},
-  { from = "/logout", to = "http://localhost:8000/logout"}
+  { from = "/logout", to = "http://localhost:8000/logout"},
+  { from = "/static", to = "http://localhost:8000/static"}
 ]

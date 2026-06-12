@@ -37,6 +37,18 @@ fn session_user(
   Ok(user)
 }
 
+pub fn redirect_if_authenticated(
+  to: String,
+  req: request.Request(wisp.Connection),
+  ctx: Context,
+  next: fn() -> response.Response(wisp.Body),
+) -> response.Response(wisp.Body) {
+  case session_user(req, ctx) {
+    Ok(_) -> wisp.redirect(to)
+    Error(_) -> next()
+  }
+}
+
 pub fn require_user(
   req: wisp.Request,
   ctx: Context,

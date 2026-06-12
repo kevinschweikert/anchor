@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
-@plugin "./daisyui.js"
+@plugin "./daisyui.js";
+
+@source "../../server/src/**";
+
 
 /* @plugin "./daisyui-theme.js" { */
 /* name: "anchor"; */
