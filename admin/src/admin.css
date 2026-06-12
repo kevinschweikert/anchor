@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+@plugin "./daisyui.js"
+
+/* @plugin "./daisyui-theme.js" { */
+/* name: "anchor"; */
+/* default: true; */
+/* color overrides */
+/* } */

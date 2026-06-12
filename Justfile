@@ -44,3 +44,7 @@ parrot: migrate-up
 
 seed:
   sqlite3 {{sqlite_file}} < server/priv/seed.sql
+
+upgrade-daisy:
+  curl -sLo admin/src/daisyui.js https://github.com/saadeghi/daisyui/releases/latest/download/daisyui.js
+  curl -sLo admin/src/daisyui-theme.js https://github.com/saadeghi/daisyui/releases/latest/download/daisyui-theme.js
