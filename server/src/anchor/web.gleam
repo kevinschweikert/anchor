@@ -1,21 +1,20 @@
 import anchor/sessions
+import gleam/http/request
+import gleam/http/response
 import gleam/option
+import gleam/result
 import shared.{type User}
 import sqlight
 import wisp
 
 pub type Context {
-  Context(
-    conn: sqlight.Connection,
-    static_directory: String,
-    user: option.Option(User),
-  )
+  Context(conn: sqlight.Connection, static_directory: String)
 }
 
 pub fn middleware(
   req: wisp.Request,
   ctx: Context,
-  handle_request: fn(wisp.Request) -> wisp.Response,
+  next: fn(wisp.Request) -> wisp.Response,
 ) -> wisp.Response {
   let req = wisp.method_override(req)
   use <- wisp.log_request(req)
@@ -24,16 +23,38 @@ pub fn middleware(
   use req <- wisp.csrf_known_header_protection(req)
   use <- wisp.serve_static(req, under: "/static", from: ctx.static_directory)
 
-  handle_request(req)
+  next(req)
 }
 
-pub fn require_admin(req: wisp.Request, ctx: Context, handler) {
-  case wisp.get_cookie(req, "sid", wisp.Signed) {
-    Ok(sid) ->
-      case sessions.lookup_active(ctx.conn, sid) {
-        Ok(user) -> handler(Context(..ctx, user: option.Some(user)))
-        _ -> wisp.redirect("/login")
-      }
+fn session_user(
+  req: request.Request(wisp.Connection),
+  ctx: Context,
+) -> Result(User, Nil) {
+  use sid <- result.try(wisp.get_cookie(req, "sid", wisp.Signed))
+  use user <- result.try(
+    sessions.lookup_active(ctx.conn, sid) |> result.replace_error(Nil),
+  )
+  Ok(user)
+}
+
+pub fn require_user(
+  req: wisp.Request,
+  ctx: Context,
+  next: fn(User) -> response.Response(wisp.Body),
+) -> response.Response(wisp.Body) {
+  case session_user(req, ctx) {
+    Ok(user) -> next(user)
     _ -> wisp.redirect("/login")
+  }
+}
+
+pub fn require_api_user(
+  req: request.Request(wisp.Connection),
+  ctx: Context,
+  next: fn(User) -> response.Response(wisp.Body),
+) -> response.Response(wisp.Body) {
+  case session_user(req, ctx) {
+    Ok(user) -> next(user)
+    _ -> wisp.response(401)
   }
 }

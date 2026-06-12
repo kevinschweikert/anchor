@@ -24,4 +24,8 @@ no_html = true
 
 [tools.lustre.dev]
 port = 1235
-proxy = { from = "/api", to = "http://localhost:8000/api" }
+proxy = [
+  { from = "/api", to = "http://localhost:8000/api" },
+  { from = "/login", to = "http://localhost:8000/login"},
+  { from = "/logout", to = "http://localhost:8000/logout"}
+]

@@ -1,22 +1,21 @@
 import anchor/resource
 import anchor/sessions
 import anchor/users
+import anchor/views/admin
+import anchor/views/index
+import anchor/views/login
 import anchor/web.{type Context}
-import argus
-import gleam/bool
 import gleam/http.{Get, Post}
 import gleam/http/request
 import gleam/http/response.{type Response}
 import gleam/json
 import gleam/list
-import gleam/option
 import gleam/result
 import lustre/attribute
 import lustre/element
 import lustre/element/html
 import shared
 import wisp
-import youid/uuid
 
 pub fn handle_request(req: wisp.Request, ctx: Context) {
   use req <- web.middleware(req, ctx)
@@ -27,7 +26,7 @@ pub fn handle_request(req: wisp.Request, ctx: Context) {
     Post, ["login"] -> handle_login(req, ctx)
     Post, ["logout"] -> handle_logout(req, ctx)
     Get, ["admin", ..] -> serve_admin(req, ctx)
-    Get, ["api", ..rest] -> handle_api_request(rest, req, ctx)
+    _, ["api", ..rest] -> handle_api_request(rest, req, ctx)
     _, _ -> wisp.not_found()
   }
 }
@@ -38,6 +37,7 @@ fn handle_api_request(
   ctx: Context,
 ) -> Response(wisp.Body) {
   case rest, req.method {
+    ["me"], Get -> me_handler(req, ctx)
     ["resource"], Get -> list_resources_handler(ctx)
     ["resource", id], Get -> show_resource_handler(id, ctx)
     ["resource"], Post -> create_resource_handler(req, ctx)
@@ -45,10 +45,19 @@ fn handle_api_request(
   }
 }
 
+fn me_handler(
+  req: request.Request(wisp.Connection),
+  ctx: Context,
+) -> Response(wisp.Body) {
+  use user <- web.require_api_user(req, ctx)
+  wisp.json_response(shared.user_to_json(user) |> json.to_string(), 200)
+}
+
 fn create_resource_handler(
   req: request.Request(wisp.Connection),
-  _ctx: Context,
+  ctx: Context,
 ) -> Response(wisp.Body) {
+  use _user <- web.require_api_user(req, ctx)
   use _json <- wisp.require_json(req)
   todo as "decode params and call resource.create_resource"
 }
@@ -72,6 +81,8 @@ fn list_resources_handler(ctx: Context) -> Response(wisp.Body) {
   )
 }
 
+const ttl: Int = 2_592_000
+
 fn handle_login(req: wisp.Request, ctx: Context) -> Response(wisp.Body) {
   let _ = sessions.delete_expired(ctx.conn)
   use form <- wisp.require_form(req)
@@ -80,20 +91,9 @@ fn handle_login(req: wisp.Request, ctx: Context) -> Response(wisp.Body) {
     use password <- result.try(
       list.key_find(form.values, "password") |> result.replace_error(Nil),
     )
-    use user <- result.try(
-      users.get_by_email(ctx.conn, email) |> result.replace_error(Nil),
-    )
-    use maybe_verified <- result.try(
-      argus.verify(user.password_hash, password) |> result.replace_error(Nil),
-    )
-    use <- bool.guard(when: maybe_verified == False, return: Error(Nil))
+    use user <- result.try(users.authenticate(ctx.conn, email, password))
     use session_id <- result.try(
-      sessions.insert(
-        ctx.conn,
-        wisp.random_string(32),
-        user.id |> uuid.to_string(),
-        30 * 86_400,
-      )
+      sessions.insert(ctx.conn, wisp.random_string(32), user.id, ttl)
       |> result.replace_error(Nil),
     )
     Ok(session_id)
@@ -118,45 +118,13 @@ fn handle_logout(req: wisp.Request, ctx: Context) -> Response(wisp.Body) {
 }
 
 fn serve_index(_ctx: Context) -> Response(wisp.Body) {
-  let html =
-    html.html([], [
-      html.head([], [
-        html.title([], "Anchorage"),
-        html.script(
-          [attribute.type_("module"), attribute.src("/static/widget.js")],
-          "",
-        ),
-      ]),
-      html.body([], [
-        element.element(
-          "anchor-widget",
-          [attribute.attribute("resource", "my-resource")],
-          [],
-        ),
-      ]),
-    ])
-
-  html
+  index.view()
   |> element.to_document_string
   |> wisp.html_response(200)
 }
 
-fn serve_login(req: wisp.Request, ctx: Context) -> Response(wisp.Body) {
-  let html =
-    html.html([], [
-      html.head([], [
-        html.title([], "Anchorage"),
-      ]),
-      html.body([], [
-        html.form([attribute.method("post")], [
-          html.input([attribute.type_("email"), attribute.name("email")]),
-          html.input([attribute.type_("password"), attribute.name("password")]),
-          html.input([attribute.type_("submit"), attribute.value("Login")]),
-        ]),
-      ]),
-    ])
-
-  html
+fn serve_login(_req: wisp.Request, _ctx: Context) -> Response(wisp.Body) {
+  login.view()
   |> element.to_document_string
   |> wisp.html_response(200)
 }
@@ -164,31 +132,9 @@ fn serve_login(req: wisp.Request, ctx: Context) -> Response(wisp.Body) {
 // The admin SPA owns everything under /admin, so any sub-path serves the same
 // shell and routing happens client-side (modem).
 fn serve_admin(req, ctx) -> Response(wisp.Body) {
-  use ctx <- web.require_admin(req, ctx)
+  use _user <- web.require_user(req, ctx)
 
-  let name = case ctx.user {
-    option.Some(user) -> user.email
-    _ -> "unknown"
-  }
-  let html =
-    html.html([], [
-      html.head([], [
-        html.title([], "Anchorage Admin"),
-        html.script(
-          [attribute.type_("module"), attribute.src("/static/admin.js")],
-          "",
-        ),
-      ]),
-      html.body([], [
-        html.text("Hello " <> name),
-        html.div([attribute.id("app")], []),
-        html.form([attribute.method("post"), attribute.action("/logout")], [
-          html.input([attribute.type_("submit"), attribute.value("Logout")]),
-        ]),
-      ]),
-    ])
-
-  html
+  admin.view()
   |> element.to_document_string
   |> wisp.html_response(200)
 }

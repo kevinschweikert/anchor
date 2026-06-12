@@ -7,7 +7,6 @@ import gleam/time/duration
 import gleam/time/timestamp
 import shared.{type User}
 import sqlight
-import youid/uuid
 
 pub fn lookup_active(
   conn: sqlight.Connection,
@@ -19,7 +18,7 @@ pub fn lookup_active(
   use row <- result.map(
     sqlight.query(sql, on: conn, with:, expecting:) |> db.expect_one,
   )
-  row_to_user(row.id, row.email, row.password_hash)
+  row_to_user(row.id, row.email)
 }
 
 pub fn insert(
@@ -65,7 +64,6 @@ pub fn delete_expired(conn: sqlight.Connection) -> Result(Nil, sqlight.Error) {
   Nil
 }
 
-fn row_to_user(id: String, email: String, password_hash: String) -> User {
-  let assert Ok(uuid) = uuid.from_string(id)
-  shared.User(id: uuid, email:, password_hash:)
+fn row_to_user(id: String, email: String) -> User {
+  shared.User(id:, email:)
 }

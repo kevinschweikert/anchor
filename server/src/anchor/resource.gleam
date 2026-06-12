@@ -7,7 +7,6 @@ import gleam/time/duration
 import gleam/time/timestamp.{type Timestamp}
 import shared
 import sqlight
-import youid/uuid
 
 pub fn list_resources(
   conn: sqlight.Connection,
@@ -127,7 +126,6 @@ fn row_to_resource(
   created_at created_at: Timestamp,
   updated_at updated_at: Option(Timestamp),
 ) -> shared.Resource {
-  let assert Ok(id) = uuid.from_string(id)
   shared.Resource(
     id:,
     name:,

@@ -5,15 +5,6 @@ import gleam/option.{type Option}
 import gleam/time/calendar
 import gleam/time/duration.{type Duration}
 import gleam/time/timestamp.{type Timestamp}
-import youid/uuid
-
-fn uuid_decoder() -> decode.Decoder(uuid.Uuid) {
-  use str <- decode.then(decode.string)
-  case uuid.from_string(str) {
-    Ok(uuid) -> decode.success(uuid)
-    Error(_) -> decode.failure(uuid.v4(), "UUID")
-  }
-}
 
 fn duration_decoder() -> decode.Decoder(Duration) {
   use seconds <- decode.then(decode.float)
@@ -59,12 +50,12 @@ pub type Availability {
 }
 
 pub type Contact {
-  Contact(id: uuid.Uuid, name: String, surname: String, email: String)
+  Contact(id: String, name: String, surname: String, email: String)
 }
 
 pub type Resource {
   Resource(
-    id: uuid.Uuid,
+    id: String,
     name: String,
     capacity: Int,
     gap: Duration,
@@ -78,7 +69,7 @@ pub type Resource {
 }
 
 pub fn resource_decoder() -> decode.Decoder(Resource) {
-  use id <- decode.field("id", uuid_decoder())
+  use id <- decode.field("id", decode.string)
   use name <- decode.field("name", decode.string)
   use capacity <- decode.field("capacity", decode.int)
   use gap <- decode.field("gap", duration_decoder())
@@ -119,7 +110,7 @@ pub fn resource_to_json(resource: Resource) -> json.Json {
     updated_at:,
   ) = resource
   json.object([
-    #("id", uuid.to_string(id) |> json.string),
+    #("id", json.string(id)),
     #("name", json.string(name)),
     #("capacity", json.int(capacity)),
     #("gap", duration.to_seconds(gap) |> json.float),
@@ -144,7 +135,7 @@ pub fn resource_to_json(resource: Resource) -> json.Json {
 
 pub type Request {
   Request(
-    id: uuid.Uuid,
+    id: String,
     start: Timestamp,
     end: Timestamp,
     contact: Contact,
@@ -162,5 +153,19 @@ pub type Booking {
 }
 
 pub type User {
-  User(id: uuid.Uuid, email: String, password_hash: String)
+  User(id: String, email: String)
+}
+
+pub fn user_decoder() -> decode.Decoder(User) {
+  use id <- decode.field("id", decode.string)
+  use email <- decode.field("email", decode.string)
+  decode.success(User(id:, email:))
+}
+
+pub fn user_to_json(user: User) -> json.Json {
+  let User(id:, email:) = user
+  json.object([
+    #("id", json.string(id)),
+    #("email", json.string(email)),
+  ])
 }

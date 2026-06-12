@@ -1,4 +1,4 @@
 -- name: GetUserByEmail :one
-SELECT *
+SELECT users.id, users.email, users.password_hash
 FROM users
 WHERE users.email = $email;

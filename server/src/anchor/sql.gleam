@@ -12,7 +12,7 @@ pub type GetUserByEmail {
 
 pub fn get_user_by_email(email email: String) {
   let sql =
-    "SELECT id, email, password_hash
+    "SELECT users.id, users.email, users.password_hash
 FROM users
 WHERE users.email = ?1"
   #(sql, [dev.ParamString(email)], get_user_by_email_decoder())
@@ -205,7 +205,7 @@ pub fn insert_session_decoder() -> decode.Decoder(InsertSession) {
 }
 
 pub type LookupActiveSession {
-  LookupActiveSession(id: String, email: String, password_hash: String)
+  LookupActiveSession(id: String, email: String)
 }
 
 pub fn lookup_active_session(
@@ -213,7 +213,7 @@ pub fn lookup_active_session(
   now now: Timestamp,
 ) {
   let sql =
-    "SELECT users.id, users.email, users.password_hash
+    "SELECT users.id, users.email
 FROM sessions
 JOIN users ON users.id = sessions.user_id
 WHERE sessions.id = ?1 AND sessions.expires_at > ?2"
@@ -227,8 +227,7 @@ WHERE sessions.id = ?1 AND sessions.expires_at > ?2"
 pub fn lookup_active_session_decoder() -> decode.Decoder(LookupActiveSession) {
   use id <- decode.field(0, decode.string)
   use email <- decode.field(1, decode.string)
-  use password_hash <- decode.field(2, decode.string)
-  decode.success(LookupActiveSession(id:, email:, password_hash:))
+  decode.success(LookupActiveSession(id:, email:))
 }
 
 pub fn delete_session(session_id session_id: String) {
