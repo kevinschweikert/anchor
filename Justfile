@@ -7,22 +7,20 @@ dbmate := "dbmate --url sqlite:" + sqlite_file + " --migrations-dir server/priv/
 run:
   cd server && gleam run
 
-# bundle widget.js and admin.js into server/priv/static
-build: build-widget build-admin
+# build all frontend projects and move them to the server static folder
+build project:
+  cd {{project}} && gleam run -m lustre/dev build --minify
 
-build-widget:
-  cd widget && gleam run -m lustre/dev build --minify
+# bundle widget.js and app.js into server/priv/static
+build-all: (build "widget") (build "app")
 
-build-admin:
-  cd admin && gleam run -m lustre/dev build --minify
-
-# hot-reloading dev server for a client package: just dev widget | just dev admin
+# hot-reloading dev server for a client package: just dev widget | just dev app
 dev project:
   cd {{project}} && gleam run -m lustre/dev start
 
-# api server (:8000) + widget (:1234) + admin (:1235) in one mprocs session
+# api server (:8000) + widget (:1234) + app (:1235) in one mprocs session
 dev-all:
-  mprocs --names server,widget,admin "just run" "just dev widget" "just dev admin"
+  mprocs --names server,widget,app "just run" "just dev widget" "just dev app"
 
 # create a new migration: just migration add_bookings
 migration name:
@@ -46,5 +44,5 @@ seed:
   sqlite3 {{sqlite_file}} < server/priv/seed.sql
 
 upgrade-daisy:
-  curl -sLo admin/src/daisyui.js https://github.com/saadeghi/daisyui/releases/latest/download/daisyui.js
-  curl -sLo admin/src/daisyui-theme.js https://github.com/saadeghi/daisyui/releases/latest/download/daisyui-theme.js
+  curl -sLo app/src/daisyui.js https://github.com/saadeghi/daisyui/releases/latest/download/daisyui.js
+  curl -sLo app/src/daisyui-theme.js https://github.com/saadeghi/daisyui/releases/latest/download/daisyui-theme.js

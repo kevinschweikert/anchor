@@ -4,6 +4,7 @@ import anchor/web.{Context}
 import envoy
 import gleam/erlang/process
 import gleam/result
+import gleam/string
 import mist
 import wisp
 import wisp/wisp_mist
@@ -16,8 +17,13 @@ pub fn main() -> Nil {
   let secret_key_base =
     envoy.get("ANCHOR_SECRET_KEY_BASE")
     |> result.lazy_unwrap(fn() { wisp.random_string(64) })
+  let trusted_origins =
+    envoy.get("ANCHOR_TRUSTED_ORIGINS")
+    |> result.map(string.split(_, on: ","))
+    |> result.unwrap([])
   let assert Ok(conn) = db.open(db_path)
-  let ctx = Context(static_directory: static_directory(), conn:)
+  let ctx =
+    Context(static_directory: static_directory(), conn:, trusted_origins:)
   let handler = router.handle_request(_, ctx)
   let assert Ok(_) =
     handler

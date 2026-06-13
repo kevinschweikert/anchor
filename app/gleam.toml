@@ -1,4 +1,4 @@
-name = "admin"
+name = "app"
 version = "1.0.0"
 target = "javascript"
 
@@ -16,7 +16,7 @@ gleeunit = ">= 1.0.0 and < 2.0.0"
 lustre_dev_tools = ">= 2.3.6 and < 3.0.0"
 
 [tools.lustre.html]
-title = "Anchorage Admin"
+title = "Anchorage"
 
 [tools.lustre.build]
 outdir = "../server/priv/static"
@@ -26,7 +26,4 @@ no_html = true
 port = 1235
 proxy = [
   { from = "/api", to = "http://localhost:8000/api" },
-  { from = "/login", to = "http://localhost:8000/login"},
-  { from = "/logout", to = "http://localhost:8000/logout"},
-  { from = "/static", to = "http://localhost:8000/static"}
 ]

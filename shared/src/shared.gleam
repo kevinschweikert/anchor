@@ -169,3 +169,47 @@ pub fn user_to_json(user: User) -> json.Json {
     #("email", json.string(email)),
   ])
 }
+
+pub type Credentials {
+  Credentials(email: String, password: String)
+}
+
+pub fn credentials_to_json(credentials: Credentials) -> json.Json {
+  let Credentials(email:, password:) = credentials
+  json.object([
+    #("email", json.string(email)),
+    #("password", json.string(password)),
+  ])
+}
+
+pub fn credentials_decoder() -> decode.Decoder(Credentials) {
+  use email <- decode.field("email", decode.string)
+  use password <- decode.field("password", decode.string)
+  decode.success(Credentials(email:, password:))
+}
+
+pub type ApiError {
+  BadRequest
+  BadCredentials
+  ServerError
+}
+
+pub fn api_error_decoder() -> decode.Decoder(ApiError) {
+  use variant <- decode.field("error", decode.string)
+  case variant {
+    "bad_request" -> decode.success(BadRequest)
+    "bad_credentials" -> decode.success(BadCredentials)
+    "server_error" -> decode.success(ServerError)
+    _ -> decode.failure(BadRequest, "ApiError")
+  }
+}
+
+pub fn api_error_to_json(api_error: ApiError) -> json.Json {
+  json.object([
+    #("error", case api_error {
+      BadRequest -> json.string("bad_request")
+      BadCredentials -> json.string("bad_credentials")
+      ServerError -> json.string("server_error")
+    }),
+  ])
+}

@@ -8,9 +8,9 @@ with composable pricing rules, and sends automatic mails to host and guest.
 Routes:
 
 - `/api/*` — JSON API consumed by the widget and the admin SPA
-- `/admin/*` — serves the admin SPA shell
 - `/demo` — widget embed demo
 - `/static/*` — built JS bundles
+- `/*` — serves the lustre app
 
 SQL queries live in `src/sql/*.sql`; `just parrot` regenerates the typed
 bindings in `src/anchor/sql.gleam`. The schema is managed with dbmate
