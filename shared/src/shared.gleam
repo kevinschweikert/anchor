@@ -133,6 +133,43 @@ pub fn resource_to_json(resource: Resource) -> json.Json {
   ])
 }
 
+pub type NewResource {
+  NewResource(
+    name: String,
+    capacity: Int,
+    gap_seconds: Int,
+    currency: String,
+    allow_animals: Bool,
+  )
+}
+
+pub fn new_resource_to_json(new_resource: NewResource) -> json.Json {
+  let NewResource(name:, capacity:, gap_seconds:, currency:, allow_animals:) =
+    new_resource
+  json.object([
+    #("name", json.string(name)),
+    #("capacity", json.int(capacity)),
+    #("gap_seconds", json.int(gap_seconds)),
+    #("currency", json.string(currency)),
+    #("allow_animals", json.bool(allow_animals)),
+  ])
+}
+
+pub fn new_resource_decoder() -> decode.Decoder(NewResource) {
+  use name <- decode.field("name", decode.string)
+  use capacity <- decode.field("capacity", decode.int)
+  use gap_seconds <- decode.field("gap_seconds", decode.int)
+  use currency <- decode.field("currency", decode.string)
+  use allow_animals <- decode.field("allow_animals", decode.bool)
+  decode.success(NewResource(
+    name:,
+    capacity:,
+    gap_seconds:,
+    currency:,
+    allow_animals:,
+  ))
+}
+
 pub type Request {
   Request(
     id: String,

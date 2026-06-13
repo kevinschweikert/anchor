@@ -1,3 +1,6 @@
+import gleam/bool
+import gleam/dynamic/decode
+import gleam/int
 import gleam/json
 import gleam/list
 import gleam/option.{type Option, None, Some}
@@ -11,7 +14,7 @@ import lustre/element/html
 import lustre/event
 import modem
 import rsvp
-import shared.{type User}
+import shared.{type Resource, type User}
 
 pub fn main() -> Nil {
   let app = lustre.application(init, update, view)
@@ -46,6 +49,12 @@ type Auth {
   Anonymous
 }
 
+type Remote(a) {
+  Loading
+  Loaded(a)
+  Failed
+}
+
 fn parse_route(route_uri: Uri) -> Route {
   case uri.path_segments(route_uri.path) {
     [] -> Public(Home)
@@ -58,7 +67,12 @@ fn parse_route(route_uri: Uri) -> Route {
 }
 
 type Model {
-  Model(route: Route, auth: Auth, login_error: Option(String))
+  Model(
+    route: Route,
+    auth: Auth,
+    login_error: Option(String),
+    resources: Remote(List(Resource)),
+  )
 }
 
 type Msg {
@@ -68,10 +82,28 @@ type Msg {
   ApiReturnedUser(Result(User, rsvp.Error(String)))
   ApiReturnedLogin(Result(User, rsvp.Error(String)))
   ApiReturnedLogout
+  ApiReturnedResources(Result(List(Resource), rsvp.Error(String)))
 }
 
 fn fetch_me() -> Effect(Msg) {
   rsvp.get("/api/me", rsvp.expect_json(shared.user_decoder(), ApiReturnedUser))
+}
+
+fn fetch_for_route(route: Route) -> Effect(Msg) {
+  case route {
+    Admin(Resources) -> fetch_resources()
+    _ -> effect.none()
+  }
+}
+
+fn fetch_resources() -> Effect(Msg) {
+  rsvp.get(
+    "/api/resource",
+    rsvp.expect_json(
+      decode.list(shared.resource_decoder()),
+      ApiReturnedResources,
+    ),
+  )
 }
 
 fn post_login(email: String, password: String) -> Effect(Msg) {
@@ -104,22 +136,22 @@ fn redirect(route: Route, auth: Auth) -> Effect(Msg) {
   }
 }
 
-fn init(_) -> #(Model, Effect(Msg)) {
+fn init(_: a) -> #(Model, Effect(Msg)) {
   let route = case modem.initial_uri() {
     Ok(route_uri) -> parse_route(route_uri)
     Error(_) -> Public(Home)
   }
   let on_url_change = fn(route_uri) { UserNavigatedTo(parse_route(route_uri)) }
   #(
-    Model(route:, auth: Checking, login_error: None),
-    effect.batch([modem.init(on_url_change), fetch_me()]),
+    Model(route:, auth: Checking, login_error: None, resources: Loading),
+    effect.batch([modem.init(on_url_change), fetch_me(), fetch_for_route(route)]),
   )
 }
 
 fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
   case msg {
     UserNavigatedTo(route) -> {
-      #(Model(..model, route:), effect.none())
+      #(Model(..model, route:), fetch_for_route(route))
     }
     UserSubmittedLogin(fields) -> {
       let email = list.key_find(fields, "email") |> result.unwrap("")
@@ -155,9 +187,16 @@ fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
       Model(..model, auth: Authenticated(user)),
       effect.none(),
     )
-
     ApiReturnedUser(Error(_)) -> #(
       Model(..model, auth: Anonymous),
+      effect.none(),
+    )
+    ApiReturnedResources(Ok(resources)) -> #(
+      Model(..model, resources: Loaded(resources)),
+      effect.none(),
+    )
+    ApiReturnedResources(Error(_)) -> #(
+      Model(..model, resources: Failed),
       effect.none(),
     )
   }
@@ -167,7 +206,8 @@ fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
 fn view(model: Model) -> Element(Msg) {
   html.div([], [
     case model.route, model.auth {
-      Admin(admin_route), Authenticated(user) -> admin_view(user, admin_route)
+      Admin(admin_route), Authenticated(user) ->
+        admin_view(user, admin_route, model)
       Admin(_), _ -> loading_view()
       Public(Home), _ -> html.h1([], [html.text("Home")])
       Guest(Login), _ -> login_view(model)
@@ -222,7 +262,7 @@ fn login_view(model: Model) -> Element(Msg) {
   ])
 }
 
-fn admin_view(user: User, route: AdminRoute) -> Element(Msg) {
+fn admin_view(user: User, route: AdminRoute, model: Model) -> Element(Msg) {
   html.div([], [
     html.text("hello " <> user.email),
     html.button([event.on_click(UserClickedLogout)], [html.text("Logout")]),
@@ -244,11 +284,33 @@ fn admin_view(user: User, route: AdminRoute) -> Element(Msg) {
           ]),
         ]),
       ]),
-      case route {
-        Dashboard -> html.text("dashboard")
-        Bookings -> html.text("bookings")
-        Resources -> html.text("resources")
-      },
     ]),
+    case route {
+      Dashboard -> html.text("dashboard")
+      Bookings -> html.text("bookings")
+      Resources ->
+        case model.resources {
+          Loaded(resources) -> {
+            html.div([attribute.class("flex flex-col gap-4")], {
+              use resource <- list.map(resources)
+              html.div([attribute.class("flex flex-row gap-4")], [
+                html.h2([], [html.text(resource.name)]),
+                html.dl([], [
+                  html.dt([], [html.text("ID")]),
+                  html.dd([], [html.text(resource.id)]),
+                  html.dt([], [html.text("Capacity")]),
+                  html.dd([], [html.text(resource.capacity |> int.to_string())]),
+                  html.dt([], [html.text("Animals Allowed")]),
+                  html.dd([], [
+                    html.text(resource.allow_animals |> bool.to_string()),
+                  ]),
+                ]),
+              ])
+            })
+          }
+          Loading -> html.text("loading resources")
+          Failed -> html.text("loading resources failed")
+        }
+    },
   ])
 }

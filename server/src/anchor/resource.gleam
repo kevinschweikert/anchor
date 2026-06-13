@@ -7,6 +7,7 @@ import gleam/time/duration
 import gleam/time/timestamp.{type Timestamp}
 import shared
 import sqlight
+import youid/uuid
 
 pub fn list_resources(
   conn: sqlight.Connection,
@@ -72,17 +73,19 @@ pub fn get_resource(
 }
 
 pub fn create_resource(
-  id id: String,
-  name name: String,
-  capacity capacity: Int,
-  gap_seconds gap_seconds: Int,
-  currency currency: String,
-  allow_animals allow_animals: Bool,
-  conn conn: sqlight.Connection,
+  conn: sqlight.Connection,
+  new: shared.NewResource,
 ) -> Result(shared.Resource, db.Error) {
+  let shared.NewResource(
+    name:,
+    capacity:,
+    gap_seconds:,
+    currency:,
+    allow_animals:,
+  ) = new
   let #(sql, with, expecting) =
     sql.create_resource(
-      id:,
+      id: uuid.v7_string(),
       name:,
       capacity:,
       gap_seconds:,
@@ -94,25 +97,15 @@ pub fn create_resource(
   use row <- result.map(
     db.expect_one(sqlight.query(sql, on: conn, with:, expecting:)),
   )
-  let sql.CreateResource(
-    id:,
-    name:,
-    capacity:,
-    gap_seconds:,
-    currency:,
-    allow_animals:,
-    created_at:,
-    updated_at:,
-  ) = row
   row_to_resource(
-    id:,
-    name:,
-    capacity:,
-    gap_seconds:,
-    currency:,
-    allow_animals:,
-    created_at:,
-    updated_at:,
+    id: row.id,
+    name: row.name,
+    capacity: row.capacity,
+    gap_seconds: row.gap_seconds,
+    currency: row.currency,
+    allow_animals: row.allow_animals,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
   )
 }
 
