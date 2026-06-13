@@ -6,7 +6,7 @@ values
 RETURNING id;
 
 -- name: LookupActiveSession :one
-SELECT users.id, users.email
+SELECT users.id, users.name, users.email
 FROM sessions
 JOIN users ON users.id = sessions.user_id
 WHERE sessions.id = $session_id AND sessions.expires_at > $now;

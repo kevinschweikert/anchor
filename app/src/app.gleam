@@ -1,20 +1,22 @@
-import gleam/bool
+import components
 import gleam/dynamic/decode
-import gleam/int
 import gleam/json
 import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/result
 import gleam/uri.{type Uri}
+import layout
 import lustre
-import lustre/attribute
 import lustre/effect.{type Effect}
 import lustre/element.{type Element}
 import lustre/element/html
-import lustre/event
 import modem
 import rsvp
 import shared.{type Resource, type User}
+import views/home
+import views/login
+import views/not_found
+import views/resources
 
 pub fn main() -> Nil {
   let app = lustre.application(init, update, view)
@@ -136,6 +138,15 @@ fn redirect(route: Route, auth: Auth) -> Effect(Msg) {
   }
 }
 
+fn handle_api_error(model, err, otherwise: fn() -> #(Model, Effect(Msg))) {
+  case err {
+    rsvp.HttpError(resp) if resp.status == 401 -> {
+      #(Model(..model, auth: Anonymous), effect.none())
+    }
+    _ -> otherwise()
+  }
+}
+
 fn init(_: a) -> #(Model, Effect(Msg)) {
   let route = case modem.initial_uri() {
     Ok(route_uri) -> parse_route(route_uri)
@@ -187,130 +198,46 @@ fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
       Model(..model, auth: Authenticated(user)),
       effect.none(),
     )
-    ApiReturnedUser(Error(_)) -> #(
-      Model(..model, auth: Anonymous),
-      effect.none(),
-    )
+    ApiReturnedUser(Error(error)) -> {
+      use <- handle_api_error(model, error)
+      #(Model(..model, auth: Anonymous), effect.none())
+    }
     ApiReturnedResources(Ok(resources)) -> #(
       Model(..model, resources: Loaded(resources)),
       effect.none(),
     )
-    ApiReturnedResources(Error(_)) -> #(
-      Model(..model, resources: Failed),
-      effect.none(),
-    )
+    ApiReturnedResources(Error(error)) -> {
+      use <- handle_api_error(model, error)
+      #(Model(..model, resources: Failed), effect.none())
+    }
   }
   |> middleware()
 }
 
 fn view(model: Model) -> Element(Msg) {
-  html.div([], [
+  element.fragment([
     case model.route, model.auth {
       Admin(admin_route), Authenticated(user) ->
-        admin_view(user, admin_route, model)
-      Admin(_), _ -> loading_view()
-      Public(Home), _ -> html.h1([], [html.text("Home")])
-      Guest(Login), _ -> login_view(model)
-      Public(NotFound), _ -> html.h1([], [html.text("Page not found")])
+        admin_pages(admin_route, model)
+        |> layout.admin(user, UserClickedLogout)
+      Admin(_), _ -> components.loading()
+      Public(Home), _ -> home.view()
+      Guest(Login), _ -> login.view(model.login_error, UserSubmittedLogin)
+      Public(NotFound), _ -> not_found.view()
     },
   ])
 }
 
-fn loading_view() -> Element(Msg) {
-  html.h1([], [html.text("loading")])
-}
-
-fn login_view(model: Model) -> Element(Msg) {
-  html.div([], [
-    case model.login_error {
-      Some(text) ->
-        html.p([attribute.class("p-2 bg-red-400 rounded")], [html.text(text)])
-      None -> element.none()
-    },
-    html.form(
-      [
-        event.on_submit(UserSubmittedLogin),
-        attribute.class("flex flex-col gap-4"),
-      ],
-      [
-        html.label([], [
-          html.text("Email address"),
-          html.input([
-            attribute.autocomplete("email"),
-            attribute.required(True),
-            attribute.name("email"),
-            attribute.type_("email"),
-            attribute.id("email"),
-          ]),
-        ]),
-        html.label([], [
-          html.text("Password"),
-          html.input([
-            attribute.autocomplete("current-password"),
-            attribute.required(True),
-            attribute.name("password"),
-            attribute.type_("password"),
-            attribute.id("password"),
-          ]),
-        ]),
-        html.input([
-          attribute.value("Sign In"),
-          attribute.type_("submit"),
-        ]),
-      ],
-    ),
-  ])
-}
-
-fn admin_view(user: User, route: AdminRoute, model: Model) -> Element(Msg) {
-  html.div([], [
-    html.text("hello " <> user.email),
-    html.button([event.on_click(UserClickedLogout)], [html.text("Logout")]),
-    html.div([attribute.class("navbar bg-base-100 shadow-sm")], [
-      html.div([attribute.class("flex-1")], [
-        html.a([attribute.class("btn btn-ghost text-xl")], [
-          html.text("Anchor Admin"),
-        ]),
-      ]),
-      html.div([attribute.class("flex-none")], [
-        html.ul([attribute.class("menu menu-horizontal px-1")], [
-          html.li([], [
-            html.a([attribute.href("/admin/bookings")], [html.text("Bookings")]),
-          ]),
-          html.li([], [
-            html.a([attribute.href("/admin/resources")], [
-              html.text("Resources"),
-            ]),
-          ]),
-        ]),
-      ]),
-    ]),
-    case route {
-      Dashboard -> html.text("dashboard")
-      Bookings -> html.text("bookings")
-      Resources ->
-        case model.resources {
-          Loaded(resources) -> {
-            html.div([attribute.class("flex flex-col gap-4")], {
-              use resource <- list.map(resources)
-              html.div([attribute.class("flex flex-row gap-4")], [
-                html.h2([], [html.text(resource.name)]),
-                html.dl([], [
-                  html.dt([], [html.text("ID")]),
-                  html.dd([], [html.text(resource.id)]),
-                  html.dt([], [html.text("Capacity")]),
-                  html.dd([], [html.text(resource.capacity |> int.to_string())]),
-                  html.dt([], [html.text("Animals Allowed")]),
-                  html.dd([], [
-                    html.text(resource.allow_animals |> bool.to_string()),
-                  ]),
-                ]),
-              ])
-            })
-          }
-          Loading -> html.text("loading resources")
-          Failed -> html.text("loading resources failed")
-        }
-    },
-  ])
+fn admin_pages(route: AdminRoute, model: Model) -> Element(Msg) {
+  case route {
+    Dashboard -> components.page("Home", element.none())
+    Bookings -> components.page("Bookings", element.none())
+    Resources ->
+      case model.resources {
+        Loaded(items) -> resources.view(items)
+        Loading -> components.loading()
+        Failed -> html.text("loading resources failed")
+      }
+      |> components.page("Resources", _)
+  }
 }

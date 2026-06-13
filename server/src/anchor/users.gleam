@@ -17,7 +17,7 @@ pub fn authenticate(
     argus.verify(row.password_hash, password) |> result.replace_error(Nil),
   )
   use <- bool.guard(when: maybe_verified == False, return: Error(Nil))
-  Ok(shared.User(id: row.id, email: row.email))
+  Ok(shared.User(id: row.id, name: row.name, email: row.email))
 }
 
 fn get_by_email(conn: sqlight.Connection, email: String) {

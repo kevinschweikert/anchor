@@ -18,7 +18,7 @@ pub fn lookup_active(
   use row <- result.map(
     sqlight.query(sql, on: conn, with:, expecting:) |> db.expect_one,
   )
-  row_to_user(row.id, row.email)
+  row_to_user(row.id, row.name, row.email)
 }
 
 pub fn insert(
@@ -64,6 +64,6 @@ pub fn delete_expired(conn: sqlight.Connection) -> Result(Nil, sqlight.Error) {
   Nil
 }
 
-fn row_to_user(id: String, email: String) -> User {
-  shared.User(id:, email:)
+fn row_to_user(id: String, name: String, email: String) -> User {
+  shared.User(id:, name:, email:)
 }

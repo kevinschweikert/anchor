@@ -7,12 +7,12 @@ import gleam/time/timestamp.{type Timestamp}
 import parrot/dev
 
 pub type GetUserByEmail {
-  GetUserByEmail(id: String, email: String, password_hash: String)
+  GetUserByEmail(id: String, name: String, email: String, password_hash: String)
 }
 
 pub fn get_user_by_email(email email: String) {
   let sql =
-    "SELECT users.id, users.email, users.password_hash
+    "SELECT users.id, users.name, users.email, users.password_hash
 FROM users
 WHERE users.email = ?1"
   #(sql, [dev.ParamString(email)], get_user_by_email_decoder())
@@ -20,9 +20,10 @@ WHERE users.email = ?1"
 
 pub fn get_user_by_email_decoder() -> decode.Decoder(GetUserByEmail) {
   use id <- decode.field(0, decode.string)
-  use email <- decode.field(1, decode.string)
-  use password_hash <- decode.field(2, decode.string)
-  decode.success(GetUserByEmail(id:, email:, password_hash:))
+  use name <- decode.field(1, decode.string)
+  use email <- decode.field(2, decode.string)
+  use password_hash <- decode.field(3, decode.string)
+  decode.success(GetUserByEmail(id:, name:, email:, password_hash:))
 }
 
 pub type AllResources {
@@ -205,7 +206,7 @@ pub fn insert_session_decoder() -> decode.Decoder(InsertSession) {
 }
 
 pub type LookupActiveSession {
-  LookupActiveSession(id: String, email: String)
+  LookupActiveSession(id: String, name: String, email: String)
 }
 
 pub fn lookup_active_session(
@@ -213,7 +214,7 @@ pub fn lookup_active_session(
   now now: Timestamp,
 ) {
   let sql =
-    "SELECT users.id, users.email
+    "SELECT users.id, users.name, users.email
 FROM sessions
 JOIN users ON users.id = sessions.user_id
 WHERE sessions.id = ?1 AND sessions.expires_at > ?2"
@@ -226,8 +227,9 @@ WHERE sessions.id = ?1 AND sessions.expires_at > ?2"
 
 pub fn lookup_active_session_decoder() -> decode.Decoder(LookupActiveSession) {
   use id <- decode.field(0, decode.string)
-  use email <- decode.field(1, decode.string)
-  decode.success(LookupActiveSession(id:, email:))
+  use name <- decode.field(1, decode.string)
+  use email <- decode.field(2, decode.string)
+  decode.success(LookupActiveSession(id:, name:, email:))
 }
 
 pub fn delete_session(session_id session_id: String) {

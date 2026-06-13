@@ -190,20 +190,22 @@ pub type Booking {
 }
 
 pub type User {
-  User(id: String, email: String)
+  User(id: String, name: String, email: String)
 }
 
 pub fn user_decoder() -> decode.Decoder(User) {
   use id <- decode.field("id", decode.string)
   use email <- decode.field("email", decode.string)
-  decode.success(User(id:, email:))
+  use name <- decode.field("name", decode.string)
+  decode.success(User(id:, email:, name:))
 }
 
 pub fn user_to_json(user: User) -> json.Json {
-  let User(id:, email:) = user
+  let User(id:, email:, name:) = user
   json.object([
     #("id", json.string(id)),
     #("email", json.string(email)),
+    #("name", json.string(name)),
   ])
 }
 
