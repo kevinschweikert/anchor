@@ -15,6 +15,14 @@ pub type Context {
   )
 }
 
+pub fn api_error_to_status_code(error: shared.ApiError) {
+  case error {
+    shared.BadRequest -> 400
+    shared.BadCredentials -> 401
+    shared.ServerError -> 500
+  }
+}
+
 pub fn middleware(
   req: wisp.Request,
   ctx: Context,
