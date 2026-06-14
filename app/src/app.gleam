@@ -12,11 +12,11 @@ import lustre/element.{type Element}
 import lustre/element/html
 import modem
 import rsvp
-import shared.{type Resource, type User}
+import shared.{type Space, type User}
 import views/home
 import views/login
 import views/not_found
-import views/resources
+import views/spaces
 
 pub fn main() -> Nil {
   let app = lustre.application(init, update, view)
@@ -38,7 +38,7 @@ type PublicRoute {
 type AdminRoute {
   Dashboard
   Bookings
-  Resources
+  Spaces
 }
 
 type GuestRoute {
@@ -63,7 +63,7 @@ fn parse_route(route_uri: Uri) -> Route {
     ["login"] -> Guest(Login)
     ["admin"] -> Admin(Dashboard)
     ["admin", "bookings"] -> Admin(Bookings)
-    ["admin", "resources"] -> Admin(Resources)
+    ["admin", "spaces"] -> Admin(Spaces)
     _ -> Public(NotFound)
   }
 }
@@ -73,7 +73,7 @@ type Model {
     route: Route,
     auth: Auth,
     login_error: Option(String),
-    resources: Remote(List(Resource)),
+    spaces: Remote(List(Space)),
   )
 }
 
@@ -84,7 +84,7 @@ type Msg {
   ApiReturnedUser(Result(User, rsvp.Error(String)))
   ApiReturnedLogin(Result(User, rsvp.Error(String)))
   ApiReturnedLogout
-  ApiReturnedResources(Result(List(Resource), rsvp.Error(String)))
+  ApiReturnedSpaces(Result(List(Space), rsvp.Error(String)))
 }
 
 fn fetch_me() -> Effect(Msg) {
@@ -93,18 +93,15 @@ fn fetch_me() -> Effect(Msg) {
 
 fn fetch_for_route(route: Route) -> Effect(Msg) {
   case route {
-    Admin(Resources) -> fetch_resources()
+    Admin(Spaces) -> fetch_spaces()
     _ -> effect.none()
   }
 }
 
-fn fetch_resources() -> Effect(Msg) {
+fn fetch_spaces() -> Effect(Msg) {
   rsvp.get(
-    "/api/resource",
-    rsvp.expect_json(
-      decode.list(shared.resource_decoder()),
-      ApiReturnedResources,
-    ),
+    "/api/spaces",
+    rsvp.expect_json(decode.list(shared.space_decoder()), ApiReturnedSpaces),
   )
 }
 
@@ -154,7 +151,7 @@ fn init(_: a) -> #(Model, Effect(Msg)) {
   }
   let on_url_change = fn(route_uri) { UserNavigatedTo(parse_route(route_uri)) }
   #(
-    Model(route:, auth: Checking, login_error: None, resources: Loading),
+    Model(route:, auth: Checking, login_error: None, spaces: Loading),
     effect.batch([modem.init(on_url_change), fetch_me(), fetch_for_route(route)]),
   )
 }
@@ -202,13 +199,13 @@ fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
       use <- handle_api_error(model, error)
       #(Model(..model, auth: Anonymous), effect.none())
     }
-    ApiReturnedResources(Ok(resources)) -> #(
-      Model(..model, resources: Loaded(resources)),
+    ApiReturnedSpaces(Ok(spaces)) -> #(
+      Model(..model, spaces: Loaded(spaces)),
       effect.none(),
     )
-    ApiReturnedResources(Error(error)) -> {
+    ApiReturnedSpaces(Error(error)) -> {
       use <- handle_api_error(model, error)
-      #(Model(..model, resources: Failed), effect.none())
+      #(Model(..model, spaces: Failed), effect.none())
     }
   }
   |> middleware()
@@ -232,12 +229,12 @@ fn admin_pages(route: AdminRoute, model: Model) -> Element(Msg) {
   case route {
     Dashboard -> components.page("Home", element.none())
     Bookings -> components.page("Bookings", element.none())
-    Resources ->
-      case model.resources {
-        Loaded(items) -> resources.view(items)
+    Spaces ->
+      case model.spaces {
+        Loaded(items) -> spaces.view(items)
         Loading -> components.loading()
-        Failed -> html.text("loading resources failed")
+        Failed -> html.text("loading spaces failed")
       }
-      |> components.page("Resources", _)
+      |> components.page("Spaces", _)
   }
 }

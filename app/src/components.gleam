@@ -59,8 +59,8 @@ pub fn navbar(user: User, on_logout: msg) -> Element(msg) {
           html.a([attribute.href("/admin/bookings")], [html.text("Bookings")]),
         ]),
         html.li([], [
-          html.a([attribute.href("/admin/resources")], [
-            html.text("Resources"),
+          html.a([attribute.href("/admin/spaces")], [
+            html.text("Spaces"),
           ]),
         ]),
       ]),

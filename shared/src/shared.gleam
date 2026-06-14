@@ -53,8 +53,8 @@ pub type Contact {
   Contact(id: String, name: String, surname: String, email: String)
 }
 
-pub type Resource {
-  Resource(
+pub type Space {
+  Space(
     id: String,
     name: String,
     capacity: Int,
@@ -68,7 +68,7 @@ pub type Resource {
   )
 }
 
-pub fn resource_decoder() -> decode.Decoder(Resource) {
+pub fn space_decoder() -> decode.Decoder(Space) {
   use id <- decode.field("id", decode.string)
   use name <- decode.field("name", decode.string)
   use capacity <- decode.field("capacity", decode.int)
@@ -82,7 +82,7 @@ pub fn resource_decoder() -> decode.Decoder(Resource) {
     "updated_at",
     decode.optional(timestamp_decoder()),
   )
-  decode.success(Resource(
+  decode.success(Space(
     id:,
     name:,
     capacity:,
@@ -96,8 +96,8 @@ pub fn resource_decoder() -> decode.Decoder(Resource) {
   ))
 }
 
-pub fn resource_to_json(resource: Resource) -> json.Json {
-  let Resource(
+pub fn space_to_json(space: Space) -> json.Json {
+  let Space(
     id:,
     name:,
     capacity:,
@@ -108,7 +108,7 @@ pub fn resource_to_json(resource: Resource) -> json.Json {
     allow_animals:,
     created_at:,
     updated_at:,
-  ) = resource
+  ) = space
   json.object([
     #("id", json.string(id)),
     #("name", json.string(name)),
@@ -133,8 +133,8 @@ pub fn resource_to_json(resource: Resource) -> json.Json {
   ])
 }
 
-pub type NewResource {
-  NewResource(
+pub type NewSpace {
+  NewSpace(
     name: String,
     capacity: Int,
     gap_seconds: Int,
@@ -143,9 +143,9 @@ pub type NewResource {
   )
 }
 
-pub fn new_resource_to_json(new_resource: NewResource) -> json.Json {
-  let NewResource(name:, capacity:, gap_seconds:, currency:, allow_animals:) =
-    new_resource
+pub fn new_space_to_json(new_space: NewSpace) -> json.Json {
+  let NewSpace(name:, capacity:, gap_seconds:, currency:, allow_animals:) =
+    new_space
   json.object([
     #("name", json.string(name)),
     #("capacity", json.int(capacity)),
@@ -155,13 +155,13 @@ pub fn new_resource_to_json(new_resource: NewResource) -> json.Json {
   ])
 }
 
-pub fn new_resource_decoder() -> decode.Decoder(NewResource) {
+pub fn new_space_decoder() -> decode.Decoder(NewSpace) {
   use name <- decode.field("name", decode.string)
   use capacity <- decode.field("capacity", decode.int)
   use gap_seconds <- decode.field("gap_seconds", decode.int)
   use currency <- decode.field("currency", decode.string)
   use allow_animals <- decode.field("allow_animals", decode.bool)
-  decode.success(NewResource(
+  decode.success(NewSpace(
     name:,
     capacity:,
     gap_seconds:,
@@ -178,7 +178,7 @@ pub type Request {
     contact: Contact,
     people: Int,
     animals: Option(Bool),
-    resources: List(Resource),
+    spaces: List(Space),
     comment: Option(String),
   )
 }

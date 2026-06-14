@@ -26,8 +26,8 @@ pub fn get_user_by_email_decoder() -> decode.Decoder(GetUserByEmail) {
   decode.success(GetUserByEmail(id:, name:, email:, password_hash:))
 }
 
-pub type AllResources {
-  AllResources(
+pub type AllSpaces {
+  AllSpaces(
     id: String,
     name: String,
     capacity: Int,
@@ -39,15 +39,15 @@ pub type AllResources {
   )
 }
 
-pub fn all_resources() {
+pub fn all_spaces() {
   let sql =
     "SELECT id, name, capacity, gap_seconds, currency, allow_animals, created_at, updated_at
-FROM resources
+FROM spaces
 LIMIT 10"
-  #(sql, [], all_resources_decoder())
+  #(sql, [], all_spaces_decoder())
 }
 
-pub fn all_resources_decoder() -> decode.Decoder(AllResources) {
+pub fn all_spaces_decoder() -> decode.Decoder(AllSpaces) {
   use id <- decode.field(0, decode.string)
   use name <- decode.field(1, decode.string)
   use capacity <- decode.field(2, decode.int)
@@ -56,7 +56,7 @@ pub fn all_resources_decoder() -> decode.Decoder(AllResources) {
   use allow_animals <- decode.field(5, dev.bool_decoder())
   use created_at <- decode.field(6, dev.datetime_decoder())
   use updated_at <- decode.field(7, decode.optional(dev.datetime_decoder()))
-  decode.success(AllResources(
+  decode.success(AllSpaces(
     id:,
     name:,
     capacity:,
@@ -68,8 +68,8 @@ pub fn all_resources_decoder() -> decode.Decoder(AllResources) {
   ))
 }
 
-pub type GetResource {
-  GetResource(
+pub type GetSpace {
+  GetSpace(
     id: String,
     name: String,
     capacity: Int,
@@ -81,15 +81,15 @@ pub type GetResource {
   )
 }
 
-pub fn get_resource(id id: String) {
+pub fn get_space(id id: String) {
   let sql =
     "SELECT id, name, capacity, gap_seconds, currency, allow_animals, created_at, updated_at
-FROM resources AS r
-WHERE r.id == ?1 COLLATE NOCASE"
-  #(sql, [dev.ParamString(id)], get_resource_decoder())
+FROM spaces
+WHERE spaces.id == ?1 COLLATE NOCASE"
+  #(sql, [dev.ParamString(id)], get_space_decoder())
 }
 
-pub fn get_resource_decoder() -> decode.Decoder(GetResource) {
+pub fn get_space_decoder() -> decode.Decoder(GetSpace) {
   use id <- decode.field(0, decode.string)
   use name <- decode.field(1, decode.string)
   use capacity <- decode.field(2, decode.int)
@@ -98,7 +98,7 @@ pub fn get_resource_decoder() -> decode.Decoder(GetResource) {
   use allow_animals <- decode.field(5, dev.bool_decoder())
   use created_at <- decode.field(6, dev.datetime_decoder())
   use updated_at <- decode.field(7, decode.optional(dev.datetime_decoder()))
-  decode.success(GetResource(
+  decode.success(GetSpace(
     id:,
     name:,
     capacity:,
@@ -110,8 +110,8 @@ pub fn get_resource_decoder() -> decode.Decoder(GetResource) {
   ))
 }
 
-pub type CreateResource {
-  CreateResource(
+pub type CreateSpace {
+  CreateSpace(
     id: String,
     name: String,
     capacity: Int,
@@ -123,7 +123,7 @@ pub type CreateResource {
   )
 }
 
-pub fn create_resource(
+pub fn create_space(
   id id: String,
   name name: String,
   capacity capacity: Int,
@@ -134,7 +134,7 @@ pub fn create_resource(
 ) {
   let sql =
     "INSERT INTO
-resources(id, name, capacity, gap_seconds, currency, allow_animals, created_at)
+spaces(id, name, capacity, gap_seconds, currency, allow_animals, created_at)
 VALUES
 (?, ?, ?, ?, ?, ?, ?)
 RETURNING id, name, capacity, gap_seconds, currency, allow_animals, created_at, updated_at"
@@ -149,11 +149,11 @@ RETURNING id, name, capacity, gap_seconds, currency, allow_animals, created_at, 
       dev.ParamBool(allow_animals),
       dev.ParamTimestamp(created_at),
     ],
-    create_resource_decoder(),
+    create_space_decoder(),
   )
 }
 
-pub fn create_resource_decoder() -> decode.Decoder(CreateResource) {
+pub fn create_space_decoder() -> decode.Decoder(CreateSpace) {
   use id <- decode.field(0, decode.string)
   use name <- decode.field(1, decode.string)
   use capacity <- decode.field(2, decode.int)
@@ -162,7 +162,7 @@ pub fn create_resource_decoder() -> decode.Decoder(CreateResource) {
   use allow_animals <- decode.field(5, dev.bool_decoder())
   use created_at <- decode.field(6, dev.datetime_decoder())
   use updated_at <- decode.field(7, decode.optional(dev.datetime_decoder()))
-  decode.success(CreateResource(
+  decode.success(CreateSpace(
     id:,
     name:,
     capacity:,

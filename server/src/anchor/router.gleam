@@ -1,5 +1,5 @@
-import anchor/controllers/resource
 import anchor/controllers/session
+import anchor/controllers/spaces
 import anchor/views/app
 import anchor/web.{type Context}
 import gleam/http.{Get, Post}
@@ -27,9 +27,9 @@ fn handle_api_request(
     ["me"], Get -> session.me(req, ctx)
     ["login"], Post -> session.login(req, ctx)
     ["logout"], Post -> session.logout(req, ctx)
-    ["resource"], Get -> resource.index(ctx)
-    ["resource", id], Get -> resource.show(id, ctx)
-    ["resource"], Post -> resource.create(req, ctx)
+    ["spaces"], Get -> spaces.index(ctx)
+    ["spaces", id], Get -> spaces.show(id, ctx)
+    ["spaces"], Post -> spaces.create(req, ctx)
     _, _ -> wisp.not_found()
   }
 }

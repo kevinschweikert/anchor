@@ -6,7 +6,7 @@ The embeddable booking widget, built with Lustre and registered as the
 
 ```html
 <script type="module" src="https://<anchor-host>/static/widget.js"></script>
-<anchor-widget resource="<resource-id>"></anchor-widget>
+<anchor-widget space="<space-id>"></anchor-widget>
 ```
 
 Hosts get this snippet preconfigured from the admin view.

@@ -1,4 +1,4 @@
-import anchor/resource
+import anchor/spaces
 import anchor/web.{type Context}
 import gleam/dynamic/decode
 import gleam/http/request
@@ -15,23 +15,20 @@ pub fn create(
   use _user <- web.require_api_user(req, ctx)
   use json <- wisp.require_json(req)
   let result = {
-    use new_resource <- result.try(
-      decode.run(json, shared.new_resource_decoder())
+    use new_space <- result.try(
+      decode.run(json, shared.new_space_decoder())
       |> result.replace_error(shared.BadRequest),
     )
-    use resource <- result.try(
-      resource.create_resource(ctx.conn, new_resource)
+    use space <- result.try(
+      spaces.create(ctx.conn, new_space)
       |> result.replace_error(shared.ServerError),
     )
-    Ok(resource)
+    Ok(space)
   }
 
   case result {
-    Ok(resource) ->
-      wisp.json_response(
-        shared.resource_to_json(resource) |> json.to_string(),
-        201,
-      )
+    Ok(space) ->
+      wisp.json_response(shared.space_to_json(space) |> json.to_string(), 201)
     Error(error) ->
       wisp.json_response(
         shared.api_error_to_json(error) |> json.to_string(),
@@ -41,20 +38,17 @@ pub fn create(
 }
 
 pub fn show(id: String, ctx: Context) -> Response(wisp.Body) {
-  case resource.get_resource(id, ctx.conn) {
-    Ok(resource) ->
-      wisp.json_response(
-        shared.resource_to_json(resource) |> json.to_string,
-        200,
-      )
+  case spaces.get(id, ctx.conn) {
+    Ok(space) ->
+      wisp.json_response(shared.space_to_json(space) |> json.to_string, 200)
     Error(_) -> wisp.not_found()
   }
 }
 
 pub fn index(ctx: Context) -> Response(wisp.Body) {
-  let assert Ok(resources) = resource.list_resources(ctx.conn)
+  let assert Ok(spaces) = spaces.list(ctx.conn)
   wisp.json_response(
-    json.array(resources, shared.resource_to_json) |> json.to_string,
+    json.array(spaces, shared.space_to_json) |> json.to_string,
     200,
   )
 }

@@ -1,7 +1,7 @@
 # app
 
 The host-facing admin SPA (Lustre + modem), served by the server under
-`/admin`. Hosts manage resources, bookings, and business logic here, and grab
+`/admin`. Hosts manage spaces, bookings, and business logic here, and grab
 the preconfigured widget embed snippet for their site.
 
 ## Development

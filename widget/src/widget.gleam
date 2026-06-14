@@ -9,8 +9,8 @@ pub const tag_name = "anchor-widget"
 pub fn main() -> Nil {
   let widget =
     lustre.component(init, update, view, [
-      component.on_attribute_change("resource", fn(value) {
-        Ok(ResourceChanged(value))
+      component.on_attribute_change("space", fn(value) {
+        Ok(SpaceChanged(value))
       }),
     ])
   let assert Ok(_) = lustre.register(widget, tag_name)
@@ -19,27 +19,25 @@ pub fn main() -> Nil {
 }
 
 type Model {
-  Model(resource: String)
+  Model(space: String)
 }
 
 type Msg {
-  ResourceChanged(String)
+  SpaceChanged(String)
 }
 
 fn init(_) -> #(Model, Effect(Msg)) {
-  #(Model(resource: ""), effect.none())
+  #(Model(space: ""), effect.none())
 }
 
 fn update(_model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
   case msg {
-    ResourceChanged(resource) -> #(Model(resource:), effect.none())
+    SpaceChanged(space) -> #(Model(space:), effect.none())
   }
 }
 
 fn view(model: Model) -> Element(Msg) {
   html.div([], [
-    html.text(
-      "Hi from the booking widget for resource:" <> model.resource <> "!",
-    ),
+    html.text("Hi from the booking widget for space:" <> model.space <> "!"),
   ])
 }

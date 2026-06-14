@@ -1,8 +1,6 @@
 -- migrate:up
 
--- TIMESTAMP columns store unix MICROSECONDS (parrot's dev.datetime_decoder and
--- db.parrot_to_sqlight both use the pog convention), not unixepoch() seconds.
-CREATE TABLE IF NOT EXISTS resources(
+CREATE TABLE IF NOT EXISTS spaces(
     id TEXT PRIMARY KEY CHECK (id = LOWER(id)),
     name TEXT NOT NULL,
     capacity INTEGER NOT NULL,
@@ -15,4 +13,4 @@ CREATE TABLE IF NOT EXISTS resources(
 
 -- migrate:down
 
-DROP TABLE IF EXISTS resources;
+DROP TABLE IF EXISTS spaces;

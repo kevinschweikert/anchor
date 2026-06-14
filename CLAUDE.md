@@ -6,12 +6,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Anchor is a SaaS tool to manage flat/room bookings, Airbnb style. Use cases:
 
-- Hosts use the admin view to create bookable resources and get a preconfigured embed code snippet
+- Hosts use the admin view to create bookable spaces and get a preconfigured embed code snippet
 - Hosts embed the booking widget on their own website; guests book through it
 - Guests can view their booking (via a private per-booking link) and cancel it if needed
 - The system automatically sends mails to host and guest
 
-"Host" = the SaaS customer managing resources; "guest" = the end user booking them.
+"Host" = the SaaS customer managing spaces; "guest" = the end user booking them.
 
 ## Commands
 
@@ -35,18 +35,18 @@ Per package (`cd` into it first): `gleam build`, `gleam test`, `gleam format src
 
 Four Gleam packages tied together by path dependencies (Gleam has no formal workspace concept):
 
-- `shared/` — domain types (`Resource`, `Booking`, `User`, ...) plus their JSON encoders/decoders. This is the wire contract between server and clients; compiled to both targets.
-- `server/` — Erlang target. wisp/mist HTTP server, SQLite via sqlight. Routes: `/api/*` JSON API (`/api/me`, `/api/login`, `/api/logout`, resources), `/static/*` JS bundles, and a catch-all that serves the single **public** SPA shell (`views/app.gleam`) for every other GET so client-side routes survive refresh. The SPA owns all UI (`/`, `/login`, `/admin/*`).
-- `widget/` — JavaScript target. The embeddable booking widget, registered as the `<anchor-widget>` custom element (`lustre.register`). Ships as one self-contained `widget.js`; third parties embed it with a script tag. Must never grow heavy deps or app imports. Element attributes (e.g. `resource`) come in via `component.on_attribute_change`.
+- `shared/` — domain types (`space`, `Booking`, `User`, ...) plus their JSON encoders/decoders. This is the wire contract between server and clients; compiled to both targets.
+- `server/` — Erlang target. wisp/mist HTTP server, SQLite via sqlight. Routes: `/api/*` JSON API (`/api/me`, `/api/login`, `/api/logout`, spaces), `/static/*` JS bundles, and a catch-all that serves the single **public** SPA shell (`views/app.gleam`) for every other GET so client-side routes survive refresh. The SPA owns all UI (`/`, `/login`, `/admin/*`).
+- `widget/` — JavaScript target. The embeddable booking widget, registered as the `<anchor-widget>` custom element (`lustre.register`). Ships as one self-contained `widget.js`; third parties embed it with a script tag. Must never grow heavy deps or app imports. Element attributes (e.g. `space`) come in via `component.on_attribute_change`.
 - `app/` — JavaScript target. The whole frontend: one `lustre.application` + modem SPA owning public pages (`/`, `/login`) and internal pages (`/admin/*`). Session identity is a 3-state `Auth` (`Checking`/`Authenticated`/`Anonymous`) loaded via `GET /api/me` in `init` — `Checking` exists so a refresh doesn't flash the login page before `/api/me` answers. Access tier is encoded in the route type itself: `Route` wraps `PublicRoute` / `GuestRoute` / `AdminRoute`, so a page can't be added without choosing a tier, and `admin_view` takes an `AdminRoute` (not `Route`), so a non-admin page there is unrepresentable. A `guard` matches the tier to drive client-side `modem.push` redirects. **These client guards are UX, not security** — the real boundary is the API (`require_api_user` → 401); the shell is public and ships to everyone.
 
-Server modules live under `server/src/anchor/` (package namespace), matching where parrot generates `sql.gleam`. The HTTP layer is split MVC-style: `router.gleam` is the route table (maps verb + path to a controller action, and serves the SPA shell for every other GET); `controllers/<domain>.gleam` (e.g. `resource`, `session`) hold the action bodies with REST-style names (`index`/`show`/`create`, `login`/`logout`/`me`) and orchestrate the persistence modules (`resource.gleam`, `users.gleam`, `sessions.gleam`, which own the SQL); routing stays out of controllers. The single SPA shell HTML lives in `server/src/anchor/views/app.gleam`.
+Server modules live under `server/src/anchor/` (package namespace), matching where parrot generates `sql.gleam`. The HTTP layer is split MVC-style: `router.gleam` is the route table (maps verb + path to a controller action, and serves the SPA shell for every other GET); `controllers/<domain>.gleam` (e.g. `space`, `session`) hold the action bodies with REST-style names (`index`/`show`/`create`, `login`/`logout`/`me`) and orchestrate the persistence modules (`space.gleam`, `users.gleam`, `sessions.gleam`, which own the SQL); routing stays out of controllers. The single SPA shell HTML lives in `server/src/anchor/views/app.gleam`.
 
-**Browser-safety invariant for `shared/` (and all JS-target packages):** ids are `String`, not `uuid.Uuid` — youid pulls in `gleam_crypto`, whose JS FFI does a top-level `import "node:crypto"` that crashes browsers. ES module imports are eager, so merely *importing* a Node-only module anywhere in the import graph breaks the widget and app, even if the function is never called. Keep `youid` (and other Node/Erlang-only deps) in `server/`; UUIDs are generated server-side and cross the wire as strings.
+**Browser-safety invariant for `shared/` (and all JS-target packages):** ids are `String`, not `uuid.Uuid` — youid pulls in `gleam_crypto`, whose JS FFI does a top-level `import "node:crypto"` that crashes browsers. ES module imports are eager, so merely _importing_ a Node-only module anywhere in the import graph breaks the widget and app, even if the function is never called. Keep `youid` (and other Node/Erlang-only deps) in `server/`; UUIDs are generated server-side and cross the wire as strings.
 
 ### Database layer
 
-SQL flows one way: queries in `server/src/sql/*.sql` (sqlc annotation syntax) → `just parrot` → generated `server/src/anchor/sql.gleam` (marked DO NOT EDIT — never modify by hand). Parrot emits one nominal row type per query; these are quarantined in their persistence module (e.g. `server/src/anchor/resource.gleam`), which destructures each row and funnels it through a single `row_to_*` constructor into the `shared` domain type. Follow that pattern for new entities: generated row types stay in the persistence module, only `shared` types cross the API. Prefer explicit column lists over `SELECT *` so generated row types only carry what the caller needs.
+SQL flows one way: queries in `server/src/sql/*.sql` (sqlc annotation syntax) → `just parrot` → generated `server/src/anchor/sql.gleam` (marked DO NOT EDIT — never modify by hand). Parrot emits one nominal row type per query; these are quarantined in their persistence module (e.g. `server/src/anchor/space.gleam`), which destructures each row and funnels it through a single `row_to_*` constructor into the `shared` domain type. Follow that pattern for new entities: generated row types stay in the persistence module, only `shared` types cross the API. Prefer explicit column lists over `SELECT *` so generated row types only carry what the caller needs.
 
 Schema changes go through dbmate migrations (`server/priv/migrations/`, single-file `-- migrate:up` / `-- migrate:down` format), then `just parrot` to regenerate bindings.
 
@@ -63,9 +63,9 @@ Schema changes go through dbmate migrations (`server/priv/migrations/`, single-f
 
 ### App dev workflow
 
-`just dev app` (:1235) is the primary loop: hot reload with the *real* session. The dev server proxies `/api` to :8000 and forwards headers both ways; cookies ignore ports, so a login performed on :1235 sets the same `localhost` cookie the proxied API calls then carry — `/api/me` returns the real session user on both origins. The page origin (`:1235`) differs from the API host (`:8000`), so wisp's CSRF origin check rejects the login POST unless `:1235` is in `ANCHOR_TRUSTED_ORIGINS` (set in `mise.toml`).
+`just dev app` (:1235) is the primary loop: hot reload with the _real_ session. The dev server proxies `/api` to :8000 and forwards headers both ways; cookies ignore ports, so a login performed on :1235 sets the same `localhost` cookie the proxied API calls then carry — `/api/me` returns the real session user on both origins. The page origin (`:1235`) differs from the API host (`:8000`), so wisp's CSRF origin check rejects the login POST unless `:1235` is in `ANCHOR_TRUSTED_ORIGINS` (set in `mise.toml`).
 
-If `main()` ever reads more from the page than `#app`, that markup must exist in *both* the dev-tools page (`tools.lustre.html.body` in `app/gleam.toml`) and the server shell (`views/app.gleam`).
+If `main()` ever reads more from the page than `#app`, that markup must exist in _both_ the dev-tools page (`tools.lustre.html.body` in `app/gleam.toml`) and the server shell (`views/app.gleam`).
 
 `:8000` after `just build-all` is the pre-flight check — the only place the real shell and minified bundle are exercised together (any route serves the shell, so `:8000/` or `:8000/admin` both work).
 
