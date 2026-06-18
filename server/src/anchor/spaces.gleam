@@ -27,7 +27,7 @@ pub fn list(conn: sqlight.Connection) -> Result(List(shared.Space), db.Error) {
     created_at:,
     updated_at:,
   ) = row
-  row_to_resource(
+  row_to_space(
     id:,
     name:,
     capacity:,
@@ -58,7 +58,7 @@ pub fn get(
     created_at:,
     updated_at:,
   ) = row
-  row_to_resource(
+  row_to_space(
     id:,
     name:,
     capacity:,
@@ -90,7 +90,7 @@ pub fn create(
   use row <- result.map(
     db.expect_one(sqlight.query(sql, on: conn, with:, expecting:)),
   )
-  row_to_resource(
+  row_to_space(
     id: row.id,
     name: row.name,
     capacity: row.capacity,
@@ -102,7 +102,7 @@ pub fn create(
   )
 }
 
-fn row_to_resource(
+fn row_to_space(
   id id: String,
   name name: String,
   capacity capacity: Int,

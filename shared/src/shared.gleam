@@ -5,6 +5,8 @@ import gleam/option.{type Option}
 import gleam/time/calendar
 import gleam/time/duration.{type Duration}
 import gleam/time/timestamp.{type Timestamp}
+import money
+import pricing
 
 fn duration_decoder() -> decode.Decoder(Duration) {
   use seconds <- decode.then(decode.float)
@@ -24,31 +26,6 @@ fn timestamp_decoder() -> decode.Decoder(Timestamp) {
   }
 }
 
-pub type Condition {
-  Always
-  NightsAtMost(Int)
-  NightsAtLeast(Int)
-  PeopleAbove(Int)
-  DaysBeforeStart(Int)
-}
-
-pub type Adjustment {
-  FlatFee(Float)
-  PerNightFee(Float)
-  PerNightPerPersonFee(Float)
-  PercentDiscount(Int)
-  PercentSurcharge(Int)
-  PercentRefund(Int)
-}
-
-pub type PricingRule {
-  PricingRule(condition: Condition, adjustment: Adjustment, label: String)
-}
-
-pub type Availability {
-  Blocked(start: Timestamp, end: Timestamp)
-}
-
 pub type Contact {
   Contact(id: String, name: String, surname: String, email: String)
 }
@@ -60,8 +37,7 @@ pub type Space {
     capacity: Int,
     gap: Duration,
     currency: String,
-    pricing: List(PricingRule),
-    availability: List(Availability),
+    pricing: pricing.Pricing,
     allow_animals: Bool,
     created_at: Timestamp,
     updated_at: Option(Timestamp),
@@ -88,8 +64,12 @@ pub fn space_decoder() -> decode.Decoder(Space) {
     capacity:,
     gap:,
     currency:,
-    pricing: [],
-    availability: [],
+    pricing: pricing.Pricing(
+      base: pricing.Flat(money.new(0)),
+      fees: [],
+      discounts: [],
+      surcharges: [],
+    ),
     allow_animals:,
     created_at:,
     updated_at:,
@@ -104,7 +84,6 @@ pub fn space_to_json(space: Space) -> json.Json {
     gap:,
     currency:,
     pricing: _,
-    availability: _,
     allow_animals:,
     created_at:,
     updated_at:,
