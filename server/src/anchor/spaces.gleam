@@ -5,6 +5,8 @@ import gleam/option.{type Option}
 import gleam/result
 import gleam/time/duration
 import gleam/time/timestamp.{type Timestamp}
+import money
+import pricing
 import shared
 import sqlight
 import youid/uuid
@@ -121,7 +123,11 @@ fn row_to_space(
     allow_animals:,
     created_at:,
     updated_at:,
-    availability: [],
-    pricing: [],
+    pricing: pricing.Pricing(
+      base: pricing.PerNight(money.zero()),
+      fees: [],
+      discounts: [],
+      surcharges: [],
+    ),
   )
 }

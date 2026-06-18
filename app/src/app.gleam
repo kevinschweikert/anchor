@@ -24,34 +24,34 @@ pub fn main() -> Nil {
   Nil
 }
 
-type Route {
+pub type Route {
   Public(PublicRoute)
   Admin(AdminRoute)
   Guest(GuestRoute)
 }
 
-type PublicRoute {
+pub type PublicRoute {
   Home
   NotFound
 }
 
-type AdminRoute {
+pub type AdminRoute {
   Dashboard
   Bookings
   Spaces
 }
 
-type GuestRoute {
+pub type GuestRoute {
   Login
 }
 
-type Auth {
+pub type Auth {
   Checking
   Authenticated(User)
   Anonymous
 }
 
-type Remote(a) {
+pub type Remote(a) {
   Loading
   Loaded(a)
   Failed
@@ -68,7 +68,7 @@ fn parse_route(route_uri: Uri) -> Route {
   }
 }
 
-type Model {
+pub type Model {
   Model(
     route: Route,
     auth: Auth,
@@ -77,7 +77,7 @@ type Model {
   )
 }
 
-type Msg {
+pub type Msg {
   UserNavigatedTo(Route)
   UserSubmittedLogin(List(#(String, String)))
   UserClickedLogout
@@ -144,7 +144,7 @@ fn handle_api_error(model, err, otherwise: fn() -> #(Model, Effect(Msg))) {
   }
 }
 
-fn init(_: a) -> #(Model, Effect(Msg)) {
+pub fn init(_: a) -> #(Model, Effect(Msg)) {
   let route = case modem.initial_uri() {
     Ok(route_uri) -> parse_route(route_uri)
     Error(_) -> Public(Home)
@@ -156,7 +156,7 @@ fn init(_: a) -> #(Model, Effect(Msg)) {
   )
 }
 
-fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
+pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
   case msg {
     UserNavigatedTo(route) -> {
       #(Model(..model, route:), fetch_for_route(route))
@@ -211,7 +211,7 @@ fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
   |> middleware()
 }
 
-fn view(model: Model) -> Element(Msg) {
+pub fn view(model: Model) -> Element(Msg) {
   element.fragment([
     case model.route, model.auth {
       Admin(admin_route), Authenticated(user) ->
